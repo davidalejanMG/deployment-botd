@@ -105,9 +105,11 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📚 *Comandos disponibles:*\n\n"
         " buscar <nombre de la pelicula deseada>\n"
         "/start – Ver mensaje de bienvenida\n"
+        "/cancelar – Cancelar operación de agregar película por el adminstrador\n\n"
         "/ayuda – Mostrar esta ayuda",
         parse_mode='Markdown'
     )
+
 BOT_TOKEN = "8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
