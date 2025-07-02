@@ -1,15 +1,26 @@
+from flask import Flask, request, abort
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, CallbackQueryHandler, ConversationHandler
-import json
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
+    filters, CallbackQueryHandler, ConversationHandler
+)
 import os
+import json
 import difflib
+import asyncio
 
+# --------------------
+# VARIABLES Y CONFIG
+# --------------------
 NOMBRE, LINK = range(2)
-ADMIN_ID= [1853918304, 5815326573]
+ADMIN_ID = [1853918304, 5815326573]
+BOT_TOKEN = "TU_TOKEN_AQUI8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"  # 
 
-# Base de datos en archivo JSON
 DATA_FILE = "peliculas.json"
 
+# --------------------
+# FUNCIONES UTILES
+# --------------------
 def cargar_peliculas():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -19,36 +30,34 @@ def cargar_peliculas():
 def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-        
-# Comando /start
+
+# --------------------
+# HANDLERS
+# --------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mensaje_bienvenido=(
+    mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
         "📌 Este bot te permite buscar enlaces de películas almacenadas por el administrador.\n\n"
-        "🔍 Escribe el nombre de la pelicula que se desea buscar.\n\n" 
-        "➕ Solo el administrador puede usar /agregar para añadir nuevas películas.\n"
-        "🆘 Escribe /ayuda para ver los comandos disponibles."
+        "🔍 Escribe el nombre de la película que deseas buscar.\n\n"
+        "➕ Solo los administradores pueden usar /agregar.\n"
+        "🆘 Usa /ayuda para ver los comandos disponibles."
     )
     keyboard = [
         [InlineKeyboardButton("Ver ayuda", callback_data="ayuda")],
         [InlineKeyboardButton("👥 Unirse a la Comunidad", url="https://t.me/addlist/3d5veWGOzdZiMzI5")]
-    
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(mensaje_bienvenido, reply_markup=reply_markup)
-    
+
 async def manejar_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     if query.data == "ayuda":
         await query.edit_message_text(
             "📚 *Comandos disponibles:*\n\n"
-            " buscar <nombre de la pelicula deseada>\n"
-            "/agregar <nombre> <link> – Agregar una película (admin)\n"
-            "/start – Ver mensaje de bienvenida\n"
-            "/cancelar – Cancelar operación de agregar película por el adminstrador\n\n"
+            " buscar <nombre de la película deseada>\n"
+            "/agregar – Agregar una película (admin)\n"
+            "/cancelar – Cancelar operación\n"
             "/ayuda – Mostrar esta ayuda",
             parse_mode='Markdown'
         )
@@ -71,23 +80,20 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = cargar_peliculas()
     data[titulo] = link
     guardar_peliculas(data)
-
     await update.message.reply_text(f"✅ Película o serie '{titulo}' agregada con éxito.")
-    
-    context.user_data.clear()  
-    return ConversationHandler.END  
-    
+    context.user_data.clear()
+    return ConversationHandler.END
+
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text("❌ Operación cancelada.")
     return ConversationHandler.END
-    
+
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("titulo"):
         return
     consulta = update.message.text.lower().strip()
     data = cargar_peliculas()
-
     if consulta in data:
         await update.message.reply_text(f"🎬 Aquí tienes el link de '{consulta}':\n{data[consulta]}")
     else:
@@ -98,24 +104,26 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mensaje += "\n".join(f"• {sug}" for sug in sugerencias)
             await update.message.reply_text(mensaje)
         else:
-            await update.message.reply_text("❌ No se encontró la película ")
-            
+            await update.message.reply_text("❌ No se encontró la película")
+
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📚 *Comandos disponibles:*\n\n"
-        " buscar <nombre de la pelicula deseada>\n"
+        " buscar <nombre de la película deseada>\n"
         "/start – Ver mensaje de bienvenida\n"
-        "/cancelar – Cancelar operación de agregar película por el adminstrador\n\n"
+        "/cancelar – Cancelar operación\n"
         "/ayuda – Mostrar esta ayuda",
         parse_mode='Markdown'
     )
 
-BOT_TOKEN = "8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"
+# --------------------
+# CONFIGURAR APPLICATION
+# --------------------
+telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("ayuda", ayuda))
-app.add_handler(CallbackQueryHandler(manejar_callback))
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("ayuda", ayuda))
+telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("agregar", iniciar_agregar)],
     states={
@@ -124,7 +132,24 @@ conv_handler = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancelar", cancelar)],
 )
-app.add_handler(conv_handler)
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-app.run_polling()
+telegram_app.add_handler(conv_handler)
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
+# --------------------
+# FLASK APP PARA WEBHOOK
+# --------------------
+app = Flask(__name__)
+
+@app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
+def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+        asyncio.run(telegram_app.update_queue.put(update))
+        return "OK"
+    else:
+        abort(403)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
 
