@@ -9,18 +9,12 @@ import json
 import difflib
 import asyncio
 
-# --------------------
-# VARIABLES Y CONFIG
-# --------------------
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
-BOT_TOKEN = "TU_TOKEN_AQUI8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"  # 
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 DATA_FILE = "peliculas.json"
 
-# --------------------
-# FUNCIONES UTILES
-# --------------------
 def cargar_peliculas():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -31,9 +25,6 @@ def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-# --------------------
-# HANDLERS
-# --------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -116,9 +107,6 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# --------------------
-# CONFIGURAR APPLICATION
-# --------------------
 telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 telegram_app.add_handler(CommandHandler("start", start))
@@ -135,21 +123,23 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-# --------------------
-# FLASK APP PARA WEBHOOK
-# --------------------
 app = Flask(__name__)
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        asyncio.run(telegram_app.update_queue.put(update))
+        asyncio.run(telegram_app.process_update(update))
         return "OK"
     else:
         abort(403)
 
 if __name__ == "__main__":
+    BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
+    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
+
+    asyncio.run(telegram_app.bot.delete_webhook())
+    asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
+    print(f"✅ Webhook configurado en: {webhook_url}")
+
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
-
-
