@@ -1,5 +1,5 @@
 from flask import Flask, request, abort
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ContextTypes,
     filters, CallbackQueryHandler, ConversationHandler
@@ -11,9 +11,12 @@ import asyncio
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
-BOT_TOKEN = "8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_URL = f"https://deployment-botd-2.onrender.com/webhook/{BOT_TOKEN}"
 
 DATA_FILE = "peliculas.json"
+
+# ---- FUNCIONES DE PELÍCULAS 
 
 def cargar_peliculas():
     if os.path.exists(DATA_FILE):
@@ -25,7 +28,7 @@ def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-# Handlers
+# ----------------- HANDLERS ----------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
@@ -107,6 +110,25 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
+# ------Application 
+
+telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
+
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("ayuda", ayuda))
+telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
+
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("agregar", iniciar_agregar)],
+    states={
+        NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_nombre)],
+        LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_link)],
+    },
+    fallbacks=[CommandHandler("cancelar", cancelar)],
+)
+telegram_app.add_handler(conv_handler)
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
 # ----------------- FLASK APP ----------------------
 
 app = Flask(__name__)
@@ -120,34 +142,15 @@ def webhook():
     else:
         abort(403)
 
-async def configurar_webhook():
-    BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
-    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
-    await telegram_app.bot.set_webhook(url=webhook_url)
-    print(f"✅ Webhook configurado en: {webhook_url}")
-
-# ----------------- CREA Application SIN builder ----------------------
-
-telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("ayuda", ayuda))
-telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("agregar", iniciar_agregar)],
-    states={
-        NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_nombre)],
-        LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_link)],
-    },
-    fallbacks=[CommandHandler("cancelar", cancelar)],
-)
-telegram_app.add_handler(conv_handler)
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-
-# ----------------- MAIN ----------------------
+async def init():
+    await telegram_app.initialize()
+    await telegram_app.start()
+    await telegram_app.bot.set_webhook(WEBHOOK_URL)
+    print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
 if __name__ == "__main__":
-    asyncio.run(configurar_webhook())
+    asyncio.run(init())
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
 
 
