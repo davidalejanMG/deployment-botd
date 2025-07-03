@@ -13,12 +13,16 @@ NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
+loop = asyncio.get_event_loop()
+
 telegram_app = (
     ApplicationBuilder()
     .token(BOT_TOKEN)
     .updater(None) 
     .build()
 )
+loop.run_until_complete(telegram_app.initialize())
+
 
 DATA_FILE = "peliculas.json"
 
