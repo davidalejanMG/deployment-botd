@@ -16,7 +16,7 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 telegram_app = (
     ApplicationBuilder()
     .token(BOT_TOKEN)
-    .updater(None)  # 👈🏻 Esto apaga el modo polling, que no quieres en Render
+    .updater(None) 
     .build()
 )
 
@@ -143,8 +143,13 @@ if __name__ == "__main__":
     BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
     webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
 
-    asyncio.run(telegram_app.bot.delete_webhook())
+@app.route("/set_webhook")
+def set_webhook():
+    BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
+    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
     asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
-    print(f"✅ Webhook configurado en: {webhook_url}")
+    return f"Webhook configurado en: {webhook_url}"
 
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
