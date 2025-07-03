@@ -13,6 +13,13 @@ NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
+telegram_app = (
+    ApplicationBuilder()
+    .token(BOT_TOKEN)
+    .updater(None)  # 👈🏻 Esto apaga el modo polling, que no quieres en Render
+    .build()
+)
+
 DATA_FILE = "peliculas.json"
 
 def cargar_peliculas():
