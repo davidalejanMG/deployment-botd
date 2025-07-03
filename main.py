@@ -12,13 +12,6 @@ import asyncio
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = "8077951983:AAHL3cV_CLdC_Nb7KNQ_CG0U_al0XpS6eag"
-#BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
-telegram_app = (
-    ApplicationBuilder()
-    .token(BOT_TOKEN)
-    .build()
-)
 
 DATA_FILE = "peliculas.json"
 
@@ -32,6 +25,7 @@ def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+# Handlers
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
@@ -115,22 +109,7 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# handlers 
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("ayuda", ayuda))
-telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("agregar", iniciar_agregar)],
-    states={
-        NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_nombre)],
-        LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_link)],
-    },
-    fallbacks=[CommandHandler("cancelar", cancelar)],
-)
-telegram_app.add_handler(conv_handler)
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
-
-# FLASK 
+# FLASK APP 
 app = Flask(__name__)
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
@@ -148,10 +127,28 @@ async def configurar_webhook():
     await telegram_app.bot.set_webhook(url=webhook_url)
     print(f"✅ Webhook configurado en: {webhook_url}")
 
+telegram_app = (
+    ApplicationBuilder()
+    .token(BOT_TOKEN)
+    .build()
+)
 
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("ayuda", ayuda))
+telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("agregar", iniciar_agregar)],
+    states={
+        NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_nombre)],
+        LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_link)],
+    },
+    fallbacks=[CommandHandler("cancelar", cancelar)],
+)
+telegram_app.add_handler(conv_handler)
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
+# 
 
 if __name__ == "__main__":
-    # Configurar webhook una sola vez
     asyncio.run(configurar_webhook())
-    # Arrancar servidor Flask
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
