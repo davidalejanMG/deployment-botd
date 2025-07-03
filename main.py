@@ -114,8 +114,6 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
-
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
 telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
