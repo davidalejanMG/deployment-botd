@@ -83,8 +83,6 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("titulo"):
-        return
     consulta = update.message.text.lower().strip()
     data = cargar_peliculas()
     if consulta in data:
@@ -128,11 +126,9 @@ async def configurar_webhook():
     await telegram_app.bot.set_webhook(url=webhook_url)
     print(f"✅ Webhook configurado en: {webhook_url}")
 
-# ----------------- CREA Application MANUAL ----------------------
+# ----------------- CREA Application SIN builder ----------------------
 
-from telegram.ext import Defaults
-
-telegram_app = Application.builder().token(BOT_TOKEN).build()
+telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
 
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
@@ -153,4 +149,5 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar)
 if __name__ == "__main__":
     asyncio.run(configurar_webhook())
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
 
