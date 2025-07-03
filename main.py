@@ -12,7 +12,7 @@ import asyncio
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
+print(f"🟢 BOT_TOKEN en runtime: {BOT_TOKEN}")
 app = Flask(__name__)
 
 loop = asyncio.get_event_loop()
@@ -148,13 +148,18 @@ def webhook():
         return "OK"
     else:
         abort(403)
-
+        
 @app.route("/set_webhook")
 def set_webhook():
-    BASE_URL = request.host_url.strip("/")
-    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
-    loop.run_until_complete(telegram_app.bot.set_webhook(url=webhook_url))
-    return f"Webhook configurado en: {webhook_url}"
+    try:
+        BASE_URL = request.host_url.strip("/")
+        webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
+        print(f"🔗 Intentando set_webhook a: {webhook_url}")
+        result = asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
+        return f"✅ Webhook configurado en: {webhook_url} → Telegram respondió: {result}"
+    except Exception as e:
+        print(f"❌ ERROR AL SETEAR WEBHOOK: {e}")
+        return f"❌ ERROR: {e}"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
