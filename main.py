@@ -139,17 +139,14 @@ def webhook():
     else:
         abort(403)
 
-if __name__ == "__main__":
-    BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
-    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
-
 @app.route("/set_webhook")
 def set_webhook():
-    BASE_URL = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}"
+    BASE_URL = request.host_url.strip("/")
     webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
     asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
     return f"Webhook configurado en: {webhook_url}"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
 
