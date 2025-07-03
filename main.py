@@ -1,7 +1,7 @@
 from flask import Flask, request, abort
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes,
+    Application, CommandHandler, MessageHandler, ContextTypes,
     filters, CallbackQueryHandler, ConversationHandler
 )
 import os
@@ -109,7 +109,8 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# FLASK APP 
+# ----------------- FLASK APP ----------------------
+
 app = Flask(__name__)
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
@@ -127,11 +128,11 @@ async def configurar_webhook():
     await telegram_app.bot.set_webhook(url=webhook_url)
     print(f"✅ Webhook configurado en: {webhook_url}")
 
-telegram_app = (
-    ApplicationBuilder()
-    .token(BOT_TOKEN)
-    .build()
-)
+# ----------------- CREA Application MANUAL ----------------------
+
+from telegram.ext import Defaults
+
+telegram_app = Application.builder().token(BOT_TOKEN).build()
 
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
@@ -147,8 +148,9 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-# 
+# ----------------- MAIN ----------------------
 
 if __name__ == "__main__":
     asyncio.run(configurar_webhook())
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
