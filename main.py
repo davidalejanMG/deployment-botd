@@ -7,28 +7,15 @@ from telegram.ext import (
 import os
 import json
 import difflib
-import asyncio
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 print(f"🟢 BOT_TOKEN en runtime: {BOT_TOKEN}")
+
 app = Flask(__name__)
 
-loop = asyncio.get_event_loop()
-
-telegram_app = (
-    ApplicationBuilder()
-    .token(BOT_TOKEN)
-    .updater(None)
-    .build()
-)
-
-async def main():
-    await telegram_app.initialize()
-    await telegram_app.start()
-
-loop.run_until_complete(main())
+telegram_app = ApplicationBuilder().token(BOT_TOKEN).build()
 
 DATA_FILE = "peliculas.json"
 
@@ -42,7 +29,7 @@ def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-# --- Funciones handlers aquí igual ---
+# --- Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -99,8 +86,6 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("titulo"):
-        return
     consulta = update.message.text.lower().strip()
     data = cargar_peliculas()
     if consulta in data:
@@ -139,30 +124,23 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-
+# --- Flask webhook ---
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
-    if request.method == "POST":
-        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        loop.create_task(telegram_app.process_update(update))
-        return "OK"
-    else:
-        abort(403)
-        
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    telegram_app.update_queue.put_nowait(update)
+    return "OK"
+
+# --- Webhook setter ---
 @app.route("/set_webhook")
 def set_webhook():
-    try:
-        BASE_URL = request.host_url.strip("/")
-        webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
-        print(f"🔗 Intentando set_webhook a: {webhook_url}")
-        result = asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
-        return f"✅ Webhook configurado en: {webhook_url} → Telegram respondió: {result}"
-    except Exception as e:
-        print(f"❌ ERROR AL SETEAR WEBHOOK: {e}")
-        return f"❌ ERROR: {e}"
+    BASE_URL = request.host_url.strip("/")
+    webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
+    result = telegram_app.bot.set_webhook(url=webhook_url)
+    return f"✅ Webhook configurado: {result}"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
 
 
 
