@@ -13,16 +13,22 @@ NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
+app = Flask(__name__)
+
 loop = asyncio.get_event_loop()
 
 telegram_app = (
     ApplicationBuilder()
     .token(BOT_TOKEN)
-    .updater(None) 
+    .updater(None)
     .build()
 )
-loop.run_until_complete(telegram_app.initialize())
 
+async def main():
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+loop.run_until_complete(main())
 
 DATA_FILE = "peliculas.json"
 
@@ -36,6 +42,7 @@ def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
+# --- Funciones handlers aquí igual ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -132,13 +139,12 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-app = Flask(__name__)
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        asyncio.run(telegram_app.process_update(update))
+        loop.create_task(telegram_app.process_update(update))
         return "OK"
     else:
         abort(403)
@@ -147,10 +153,11 @@ def webhook():
 def set_webhook():
     BASE_URL = request.host_url.strip("/")
     webhook_url = f"{BASE_URL}/webhook/{BOT_TOKEN}"
-    asyncio.run(telegram_app.bot.set_webhook(url=webhook_url))
+    loop.run_until_complete(telegram_app.bot.set_webhook(url=webhook_url))
     return f"Webhook configurado en: {webhook_url}"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)))
+
 
 
