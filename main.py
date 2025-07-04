@@ -8,6 +8,9 @@ import os
 import json
 import difflib
 import asyncio
+import nest_asyncio
+
+nest_asyncio.apply()  
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
@@ -16,7 +19,7 @@ WEBHOOK_URL = f"https://deployment-botd-2.onrender.com/webhook/{BOT_TOKEN}"
 
 DATA_FILE = "peliculas.json"
 
-# ---- FUNCIONES DE PELÍCULAS 
+# ---- FUNCIONES DE PELÍCULAS
 
 def cargar_peliculas():
     if os.path.exists(DATA_FILE):
@@ -110,7 +113,7 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# ------Application 
+# ------Application
 
 telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
 
@@ -129,31 +132,31 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-# ----------------- FLASK APP ----------------------
+# ----------------- FLASK APP 
 
 app = Flask(__name__)
+loop = asyncio.get_event_loop()
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        asyncio.run(telegram_app.process_update(update))
+        loop.create_task(telegram_app.process_update(update))
         return "OK"
     else:
         abort(403)
-        
-async def init():
-    await telegram_app.initialize()
-    await telegram_app.start()
-    await telegram_app.bot.set_webhook(WEBHOOK_URL)
-    print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(telegram_app.bot.set_webhook(WEBHOOK_URL))
-    print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
+    async def main():
+        await telegram_app.initialize()
+        await telegram_app.start()
+        await telegram_app.bot.set_webhook(WEBHOOK_URL)
+        print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+        port = int(os.environ.get("PORT", 5000))
+        app.run(host="0.0.0.0", port=port)
+
+    asyncio.run(main())
+
 
 
