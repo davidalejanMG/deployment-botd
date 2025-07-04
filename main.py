@@ -10,16 +10,13 @@ import difflib
 import asyncio
 import nest_asyncio
 
-nest_asyncio.apply()  
+nest_asyncio.apply()
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = f"https://deployment-botd-2.onrender.com/webhook/{BOT_TOKEN}"
-
 DATA_FILE = "peliculas.json"
-
-# ---- FUNCIONES DE PELÍCULAS
 
 def cargar_peliculas():
     if os.path.exists(DATA_FILE):
@@ -30,8 +27,6 @@ def cargar_peliculas():
 def guardar_peliculas(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
-
-# ----------------- HANDLERS ----------------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
@@ -113,8 +108,6 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='Markdown'
     )
 
-# ------Application
-
 telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
 
 telegram_app.add_handler(CommandHandler("start", start))
@@ -132,31 +125,25 @@ conv_handler = ConversationHandler(
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-# ----------------- FLASK APP 
-
 app = Flask(__name__)
-loop = asyncio.get_event_loop()
 
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-        loop.create_task(telegram_app.process_update(update))
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(telegram_app.process_update(update))
         return "OK"
     else:
         abort(403)
 
 if __name__ == "__main__":
-    async def main():
-        await telegram_app.initialize()
-        await telegram_app.start()
-        await telegram_app.bot.set_webhook(WEBHOOK_URL)
-        print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(telegram_app.initialize())
+    loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
+    print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
-        port = int(os.environ.get("PORT", 5000))
-        app.run(host="0.0.0.0", port=port)
-
-    asyncio.run(main())
+    app.run(host="0.0.0.0", port=10000)
 
 
 
