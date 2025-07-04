@@ -103,8 +103,7 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📚 *Comandos disponibles:*\n\n"
         " buscar <nombre de la película deseada>\n"
         "/start – Ver mensaje de bienvenida\n"
-        "/cancelar – Cancelar operación\n"
-        "/ayuda – Mostrar esta ayuda",
+        "/cancelar – Cancelar operación\n",
         parse_mode='Markdown'
     )
 
