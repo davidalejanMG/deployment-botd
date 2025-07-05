@@ -52,6 +52,7 @@ async def manejar_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             " buscar <nombre de la película deseada>\n"
             "/agregar – Agregar una película (admin)\n"
             "/cancelar – Cancelar operación\n"
+            "/eliminar – eliminar pelicula agregada solo por (admin)\n"
             "/ayuda – Mostrar esta ayuda",
             parse_mode='Markdown'
         )
@@ -108,12 +109,32 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("❌ No se encontró la película")
 
+async def borrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_ID:
+        await update.message.reply_text("🚫 No tienes permiso para usar este comando.")
+        return ConversationHandler.END
+    args = context.args
+    if not args:
+        await update.message.reply_text("❌ Debes escribir el nombre de la película a borrar.")
+        return
+
+    titulo = " ".join(args).lower().strip()
+    data = cargar_peliculas()
+
+    if titulo in data:
+        del data[titulo]
+        guardar_peliculas(data)
+        await update.message.reply_text(f"✅ '{titulo}' ha sido eliminado.")
+    else:
+        await update.message.reply_text(f"❌ No se encontró '{titulo}'.")
+
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📚 *Comandos disponibles:*\n\n"
         " buscar <nombre de la película deseada>\n"
         "/start – Ver mensaje de bienvenida\n"
-        "/cancelar – Cancelar operación\n",
+        "/cancelar – Cancelar operación\n"
+        "/eliminar – eliminar pelicula agregada solo por (admin)",
         parse_mode='Markdown'
     )
 
@@ -132,6 +153,7 @@ telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar)
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
 telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
+telegram_app.add_handler(CommandHandler("eliminar", borrar))
 
 
 app = Flask(__name__)
