@@ -60,24 +60,34 @@ async def iniciar_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_ID:
         await update.message.reply_text("🚫 No tienes permiso para usar este comando.")
         return ConversationHandler.END
-    await update.message.reply_text("🎬 ¿Cómo se llama la película o serie que quieres agregar?")
-    return NOMBRE
+
+    await update.message.reply_text(
+        "🎬 ¿Cómo se llama la película o serie que quieres agregar?"
+    )
+    return NOMBRE  
 
 async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["titulo"] = update.message.text.lower().strip()
-    await update.message.reply_text("🔗 Ahora, por favor envíame el link de la película o serie.")
-    return LINK
+    await update.message.reply_text(
+        "🔗 Ahora, por favor envíame el link de la película o serie."
+    )
+    return LINK 
 
 async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     titulo = context.user_data.get("titulo")
     link = update.message.text.strip()
+    
+    if not titulo:
+        await update.message.reply_text("⚠️ No se encontró el título. Usa /agregar de nuevo.")
+        return ConversationHandler.END
+
     data = cargar_peliculas()
     data[titulo] = link
     guardar_peliculas(data)
+
     await update.message.reply_text(f"✅ Película o serie '{titulo}' agregada con éxito.")
     context.user_data.clear()
-    return ConversationHandler.END
-
+    return ConversationHandler.END  
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text("❌ Operación cancelada.")
@@ -118,12 +128,9 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancelar", cancelar)],
 )
 telegram_app.add_handler(conv_handler)
-
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
 telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-
-
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
 app = Flask(__name__)
