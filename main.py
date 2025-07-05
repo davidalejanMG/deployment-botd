@@ -166,7 +166,10 @@ telegram_app.add_handler(CommandHandler("eliminar", borrar))
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
 telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+telegram_app.add_handler(MessageHandler(
+    filters.TEXT & ~filters.COMMAND & ~filters.Regex(r"^https?://"),
+    buscar
+))
 
 app = Flask(__name__)
 
