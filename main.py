@@ -52,7 +52,7 @@ async def manejar_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             " buscar <nombre de la película deseada>\n"
             "/agregar – Agregar una película (admin)\n"
             "/cancelar – Cancelar operación\n"
-            "/eliminar – eliminar pelicula agregada solo por (admin)\n"
+            "/eliminar – eliminar película agregada solo por (admin)\n"
             "/ayuda – Mostrar esta ayuda",
             parse_mode='Markdown'
         )
@@ -62,13 +62,19 @@ async def iniciar_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🚫 No tienes permiso para usar este comando.")
         return ConversationHandler.END
 
+    context.user_data.clear()  
     await update.message.reply_text(
         "🎬 ¿Cómo se llama la película o serie que quieres agregar?"
     )
     return NOMBRE
 
 async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["titulo"] = update.message.text.lower().strip()
+    nombre = update.message.text.lower().strip()
+    if not nombre:
+        await update.message.reply_text("⚠️ El nombre no puede estar vacío. Inténtalo de nuevo.")
+        return NOMBRE
+
+    context.user_data["titulo"] = nombre
     await update.message.reply_text(
         "🔗 Ahora, por favor envíame el link de la película o serie."
     )
@@ -77,10 +83,14 @@ async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     titulo = context.user_data.get("titulo")
     link = update.message.text.strip()
-    
+
     if not titulo:
         await update.message.reply_text("⚠️ No se encontró el título. Usa /agregar de nuevo.")
         return ConversationHandler.END
+
+    if not link.startswith("http"):
+        await update.message.reply_text("🚫 El link no es válido. Asegúrate de que empiece con http o https.")
+        return LINK  
 
     data = cargar_peliculas()
     data[titulo] = link
@@ -89,6 +99,7 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Película o serie '{titulo}' agregada con éxito.")
     context.user_data.clear()
     return ConversationHandler.END  
+
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text("❌ Operación cancelada.")
@@ -133,8 +144,9 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📚 *Comandos disponibles:*\n\n"
         " buscar <nombre de la película deseada>\n"
         "/start – Ver mensaje de bienvenida\n"
+        "/agregar – Agregar una película (admin)\n"
         "/cancelar – Cancelar operación\n"
-        "/eliminar – eliminar pelicula agregada solo por (admin)",
+        "/eliminar – Eliminar película (admin)",
         parse_mode='Markdown'
     )
 
@@ -148,6 +160,7 @@ conv_handler = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancelar", cancelar)],
 )
+
 telegram_app.add_handler(conv_handler)
 telegram_app.add_handler(CommandHandler("eliminar", borrar))
 telegram_app.add_handler(CommandHandler("start", start))
@@ -174,6 +187,7 @@ if __name__ == "__main__":
     print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
     app.run(host="0.0.0.0", port=10000)
+
 
 
 
