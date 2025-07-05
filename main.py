@@ -64,7 +64,7 @@ async def iniciar_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎬 ¿Cómo se llama la película o serie que quieres agregar?"
     )
-    return NOMBRE  
+    return NOMBRE
 
 async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["titulo"] = update.message.text.lower().strip()
@@ -128,10 +128,11 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancelar", cancelar)],
 )
 telegram_app.add_handler(conv_handler)
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ayuda", ayuda))
 telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
+
 
 app = Flask(__name__)
 
