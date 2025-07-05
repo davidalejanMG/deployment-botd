@@ -109,10 +109,6 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 telegram_app = Application.builder().token(BOT_TOKEN).updater(None).build()
 
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("ayuda", ayuda))
-telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
-
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("agregar", iniciar_agregar)],
     states={
@@ -122,6 +118,12 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancelar", cancelar)],
 )
 telegram_app.add_handler(conv_handler)
+
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("ayuda", ayuda))
+telegram_app.add_handler(CallbackQueryHandler(manejar_callback))
+
+
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
 app = Flask(__name__)
