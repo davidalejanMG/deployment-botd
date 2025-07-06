@@ -20,6 +20,18 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = f"https://deployment-botd-2.onrender.com/webhook/{BOT_TOKEN}"
 
+def crear_tabla_si_no_existe():
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS peliculas (
+                    titulo TEXT PRIMARY KEY,
+                    link TEXT NOT NULL
+                );
+            """)
+        conn.commit()
+crear_tabla_si_no_existe()
+
 def cargar_peliculas():
     data = {}
     with psycopg.connect(DATABASE_URL) as conn:
