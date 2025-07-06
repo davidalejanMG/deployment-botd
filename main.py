@@ -5,28 +5,30 @@ from telegram.ext import (
     filters, CallbackQueryHandler, ConversationHandler
 )
 import os
-import json
 import difflib
 import asyncio
 import nest_asyncio
+import psycopg
+from dotenv import load_dotenv
 
 nest_asyncio.apply()
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_URL = f"https://deployment-botd-2.onrender.com/webhook/{BOT_TOKEN}"
-DATA_FILE = "peliculas.json"
 
 def cargar_peliculas():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def guardar_peliculas(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+    data = {}
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT titulo, link FROM peliculas;")
+            rows = cur.fetchall()
+            for titulo, link in rows:
+                data[titulo] = link
+    return data
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
@@ -90,15 +92,20 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not link.startswith("http"):
         await update.message.reply_text("🚫 El link no es válido. Asegúrate de que empiece con http o https.")
-        return LINK  
+        return LINK
 
-    data = cargar_peliculas()
-    data[titulo] = link
-    guardar_peliculas(data)
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO peliculas (titulo, link) VALUES (%s, %s) ON CONFLICT (titulo) DO UPDATE SET link = EXCLUDED.link;",
+                (titulo, link)
+            )
+        conn.commit()
 
     await update.message.reply_text(f"✅ Película o serie '{titulo}' agregada con éxito.")
     context.user_data.clear()
-    return ConversationHandler.END  
+    return ConversationHandler.END
+
 
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -124,20 +131,21 @@ async def borrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_ID:
         await update.message.reply_text("🚫 No tienes permiso para usar este comando.")
         return ConversationHandler.END
+
     args = context.args
     if not args:
         await update.message.reply_text("❌ Debes escribir el nombre de la película a borrar.")
         return
 
     titulo = " ".join(args).lower().strip()
-    data = cargar_peliculas()
 
-    if titulo in data:
-        del data[titulo]
-        guardar_peliculas(data)
-        await update.message.reply_text(f"✅ '{titulo}' ha sido eliminado.")
-    else:
-        await update.message.reply_text(f"❌ No se encontró '{titulo}'.")
+    with psycopg.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM peliculas WHERE titulo = %s;", (titulo,))
+        conn.commit()
+
+    await update.message.reply_text(f"✅ '{titulo}' ha sido eliminado.")
+
 
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -190,7 +198,6 @@ if __name__ == "__main__":
     print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
     app.run(host="0.0.0.0", port=10000)
-
 
 
 
