@@ -4,3 +4,4 @@ requests
 nest_asyncio==1.6.0
 psycopg[binary]
 python-dotenv
+
