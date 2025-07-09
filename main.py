@@ -10,7 +10,7 @@ import asyncio
 import nest_asyncio
 import psycopg
 from dotenv import load_dotenv
-from flask import got_first_request
+from flask.signals import got_first_request
 
 nest_asyncio.apply()
 
