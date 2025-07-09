@@ -43,7 +43,7 @@ def cargar_peliculas():
                 data[titulo] = link
     return data
 
-# Handlers
+# Handlers 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -78,10 +78,8 @@ async def iniciar_agregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🚫 No tienes permiso para usar este comando.")
         return ConversationHandler.END
 
-    context.user_data.clear()  
-    await update.message.reply_text(
-        "🎬 ¿Cómo se llama la película o serie que quieres agregar?"
-    )
+    context.user_data.clear()
+    await update.message.reply_text("🎬 ¿Cómo se llama la película o serie que quieres agregar?")
     return NOMBRE
 
 async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -91,10 +89,8 @@ async def recibir_nombre(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return NOMBRE
 
     context.user_data["titulo"] = nombre
-    await update.message.reply_text(
-        "🔗 Ahora, por favor envíame el link de la película o serie."
-    )
-    return LINK 
+    await update.message.reply_text("🔗 Ahora, por favor envíame el link de la película o serie.")
+    return LINK
 
 async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     titulo = context.user_data.get("titulo")
@@ -209,6 +205,10 @@ def setup_webhook():
     loop.run_until_complete(telegram_app.initialize())
     loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
     print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
+
 
 
 
