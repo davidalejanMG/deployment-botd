@@ -1,1 +1,2 @@
-web: gunicorn --worker-class gevent --bind 0.0.0.0:10000 main:app
+web: gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:10000
+
