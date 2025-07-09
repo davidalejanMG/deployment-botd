@@ -5,4 +5,4 @@ nest_asyncio==1.6.0
 psycopg[binary]
 python-dotenv
 gunicorn
-gevent==24.2.1
+uvicorn
