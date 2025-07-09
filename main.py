@@ -10,6 +10,7 @@ import asyncio
 import nest_asyncio
 import psycopg
 from dotenv import load_dotenv
+from flask import got_first_request
 
 nest_asyncio.apply()
 
@@ -199,12 +200,13 @@ def webhook():
     else:
         abort(403)
 
-@app.before_first_request
 def setup_webhook():
     loop = asyncio.get_event_loop()
     loop.run_until_complete(telegram_app.initialize())
     loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
     print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
+
+got_first_request.connect(setup_webhook, app)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
