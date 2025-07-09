@@ -10,7 +10,6 @@ import asyncio
 import nest_asyncio
 import psycopg
 from dotenv import load_dotenv
-from flask.signals import got_first_request
 
 nest_asyncio.apply()
 
@@ -44,7 +43,7 @@ def cargar_peliculas():
                 data[titulo] = link
     return data
 
-# Handlers 
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -190,6 +189,19 @@ telegram_app.add_handler(MessageHandler(
 
 app = Flask(__name__)
 
+#  inicializar webhook solo una vez
+webhook_configured = False
+
+@app.before_request
+def setup_webhook_once():
+    global webhook_configured
+    if not webhook_configured:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(telegram_app.initialize())
+        loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
+        print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
+        webhook_configured = True
+
 @app.route(f"/webhook/{BOT_TOKEN}", methods=["POST"])
 def webhook():
     if request.method == "POST":
@@ -200,16 +212,9 @@ def webhook():
     else:
         abort(403)
 
-def setup_webhook():
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(telegram_app.initialize())
-    loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
-    print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
-
-got_first_request.connect(setup_webhook, app)
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
 
 
