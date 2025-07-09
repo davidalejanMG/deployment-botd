@@ -15,6 +15,7 @@ nest_asyncio.apply()
 
 NOMBRE, LINK = range(2)
 ADMIN_ID = [1853918304, 5815326573]
+
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -42,6 +43,7 @@ def cargar_peliculas():
                 data[titulo] = link
     return data
 
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mensaje_bienvenido = (
         "🎬 ¡Bienvenido a Cine+💭Bot Series y Películas!\n\n"
@@ -118,7 +120,6 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     return ConversationHandler.END
 
-
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text("❌ Operación cancelada.")
@@ -157,7 +158,6 @@ async def borrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
 
     await update.message.reply_text(f"✅ '{titulo}' ha sido eliminado.")
-
 
 async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -203,13 +203,14 @@ def webhook():
     else:
         abort(403)
 
-if __name__ == "__main__":
+@app.before_first_request
+def setup_webhook():
     loop = asyncio.get_event_loop()
     loop.run_until_complete(telegram_app.initialize())
     loop.run_until_complete(telegram_app.bot.set_webhook(WEBHOOK_URL))
     print(f"✅ Webhook configurado en: {WEBHOOK_URL}")
 
-    app.run(host="0.0.0.0", port=10000)
+
 
 
 
